@@ -1,6 +1,5 @@
 require 'nokogiri'
 require 'open-uri'
-require 'pp'
 
 url = 'http://girlschannel.net/topics/1395348/'
 
@@ -12,22 +11,18 @@ html = open(url) do |f|
 end
 
 $doc = Nokogiri::HTML.parse(html, nil, charset)
-$doc.xpath("/html/body/div[1]/div[1]/div/div[3]/ul").each do |node|
-  # p node.css("comment-item")
-  # p node.children
-end
 
+# Get HowManyPages this topic
 if $doc.xpath("/html/body/div[1]/div[1]/div/div[4]/ul/li")[0][:class].to_s.include?("first")
   @max_pages = $doc.xpath("/html/body/div[1]/div[1]/div/div[4]/ul/li").size - 4
 else
   @max_pages = 1
 end
 
-# puts $doc.xpath("//*[@id=\"comment1\"]")
 @current_page_comments = $doc.xpath("/html/body/div[1]/div[1]/div/div[3]/ul/li").size
 
 def GetComment(comment_id)
-  #Deleted comment
+  #For Deleted comment, return nil.
   if $doc.xpath("//*[@id=\"comment#{comment_id}\"]").size == 0
     @comment_tmp = {name: NIL, date: NIL, plus: NIL, minus: NIL, body: NIL, format: NIL}
     return
@@ -51,7 +46,6 @@ def GetComment(comment_id)
 end
 
 GetComment(501)
-# puts "@comment_tmp: #{@comment_tmp.inspect}"
 puts "@comment_tmp[:name]: #{@comment_tmp[:name]}"
 puts "@comment_tmp[:date]: #{@comment_tmp[:date]}"
 puts "@comment_tmp[:plus]: #{@comment_tmp[:plus]}"
@@ -64,15 +58,3 @@ puts "@comment_tmp[:format]: #{@comment_tmp[:format]}"
   GetComment(i)
   puts "@comment_tmp[#{i}][:body]: #{@comment_tmp[:body]}"
 end
-
-
-
-
-# puts "@current_page_comments: #{@current_page_comments}"
-# puts "@comment_name: #{@comment_name}"
-# puts "@comment_date: #{@comment_date}"
-# puts "@comment_plus: #{@comment_plus}"
-# puts "@comment_minus: #{@comment_minus}"
-# puts "@commnet_body: #{@commnet_body}"
-# puts "@commnet_wordstyle: #{@commnet_wordstyle}"
-# puts "@max_pages: #{@max_pages}"
