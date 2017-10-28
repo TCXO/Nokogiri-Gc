@@ -1,25 +1,28 @@
 require 'nokogiri'
 require 'open-uri'
 
-url = 'http://girlschannel.net/topics/1395348/'
 
-charset = nil
+def GetTopicInfo(topic_id, current_page)
+  url = 'http://girlschannel.net/topics/' + topic_id
+  charset = nil
+  html = open(url) do |f|
+      charset = f.charset
+      f.read
+  end
+  $doc = Nokogiri::HTML.parse(html, nil, charset)
 
-html = open(url) do |f|
-    charset = f.charset
-    f.read
+
+  # Get HowManyPages this topic
+  if $doc.xpath("/html/body/div[1]/div[1]/div/div[4]/ul/li")[0][:class].to_s.include?("first")
+    @max_pages = $doc.xpath("/html/body/div[1]/div[1]/div/div[4]/ul/li").size - 4
+  else
+    @max_pages = 1
+  end
+
+  @current_page_comments = $doc.xpath("/html/body/div[1]/div[1]/div/div[3]/ul/li").size
 end
 
-$doc = Nokogiri::HTML.parse(html, nil, charset)
 
-# Get HowManyPages this topic
-if $doc.xpath("/html/body/div[1]/div[1]/div/div[4]/ul/li")[0][:class].to_s.include?("first")
-  @max_pages = $doc.xpath("/html/body/div[1]/div[1]/div/div[4]/ul/li").size - 4
-else
-  @max_pages = 1
-end
-
-@current_page_comments = $doc.xpath("/html/body/div[1]/div[1]/div/div[3]/ul/li").size
 
 def GetComment(comment_id)
   #For Deleted comment, return nil.
@@ -43,18 +46,38 @@ def GetComment(comment_id)
   commnet_wordstyle = $doc.xpath("//*[@id=\"comment#{comment_id}\"]/div[1]")[0][:class]
 
   @comment_tmp = {name: comment_name, date: comment_date, plus: comment_plus, minus: comment_minus, body: commnet_body, format: commnet_wordstyle}
+
+  puts @comment_tmp
 end
 
-GetComment(501)
-puts "@comment_tmp[:name]: #{@comment_tmp[:name]}"
-puts "@comment_tmp[:date]: #{@comment_tmp[:date]}"
-puts "@comment_tmp[:plus]: #{@comment_tmp[:plus]}"
-puts "@comment_tmp[:minus]: #{@comment_tmp[:minus]}"
-puts "@comment_tmp[:body]: #{@comment_tmp[:body]}"
-puts "@comment_tmp[:format]: #{@comment_tmp[:format]}"
+# $current_page = 1
+# $topic_id = '1395348/' + $current_page
+# GetTopicInfo($topic_id, $current_page)
+# @max_pages.times do |i|
+#   GetTopicInfo($topic_id, i)
+#   @current_page_comments.times do |j|
+#     GetComment(($current_page * i) + j)
+#     puts "@comment_tmp[:name]: #{@comment_tmp[:name]}"
+#     puts "@comment_tmp[:date]: #{@comment_tmp[:date]}"
+#     puts "@comment_tmp[:plus]: #{@comment_tmp[:plus]}"
+#     puts "@comment_tmp[:minus]: #{@comment_tmp[:minus]}"
+#     puts "@comment_tmp[:body]: #{@comment_tmp[:body]}"
+#     puts "@comment_tmp[:format]: #{@comment_tmp[:format]}"
+#   end
+# end
 
-@current_page_comments.times do |i|
-  i += 1
-  GetComment(i)
-  puts "@comment_tmp[#{i}][:body]: #{@comment_tmp[:body]}"
-end
+GetTopicInfo("1395348", "1")
+puts "@current_page_comments: #{@current_page_comments}"
+GetComment("500")
+# puts "@comment_tmp[:name]: #{@comment_tmp[:name]}"
+# puts "@comment_tmp[:date]: #{@comment_tmp[:date]}"
+# puts "@comment_tmp[:plus]: #{@comment_tmp[:plus]}"
+# puts "@comment_tmp[:minus]: #{@comment_tmp[:minus]}"
+# puts "@comment_tmp[:body]: #{@comment_tmp[:body]}"
+# puts "@comment_tmp[:format]: #{@comment_tmp[:format]}"
+
+# @current_page_comments.times do |i|
+#   i += 1
+#   GetComment(i)
+#   puts "@comment_tmp[#{i}][:body]: #{@comment_tmp[:body]}"
+# end
