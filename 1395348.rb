@@ -1,6 +1,27 @@
 require './GetTopicInfo.rb'
 
+GetTopicInfo("1395348") #page: 3, life: ok
+1.upto @max_pages do |i|
+  # puts "i: #{i}"
+  GetTopicPage("1395348", i)
+  1.upto 500 do |j|
+    # puts "i-j: #{i}-#{j}, #{j+((i-1)*500)}"
+    GetComment(j+((i-1)*500))
+  end
+end
 
+# GetTopicPage("1395348", 3)
+# GetComment("1206")
+# GetComment("1205")
+
+
+# 1.upto @comments do |i|
+#   puts "i: #{i}"
+# end
+
+# GetTopicPage("19872", "1")
+# GetComment("2")
+# GetComment("3")
 
 
 # $current_page = 1

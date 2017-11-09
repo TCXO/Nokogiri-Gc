@@ -22,8 +22,8 @@ def GetTopicInfo(topic_id)
 
   puts "@max: #{@max_pages}"
 
-  @current_page_comments = $doc.xpath("/html/body/div[1]/div[1]/div/div[1]/p/span[2]").children.to_s.match(/\d*/)
-  puts "com: #{@current_page_comments}"
+  @comments = $doc.xpath("/html/body/div[1]/div[1]/div/div[1]/p/span[2]").children.to_s.match(/\d*/).to_s.to_i
+  puts "com: #{@comments}"
 end
 
 def GetTopicPage(topic_id, topic_page)
@@ -41,6 +41,7 @@ def GetComment(comment_id)
   #For Deleted comment, return nil.
   if $doc.xpath("//*[@id=\"comment#{comment_id}\"]").size == 0
     @comment_tmp = {name: NIL, date: NIL, plus: NIL, minus: NIL, body: NIL, format: NIL}
+    puts "comment nil."
     return
   end
 
@@ -61,14 +62,14 @@ def GetComment(comment_id)
   @comment_tmp = {name: comment_name, date: comment_date, plus: comment_plus, minus: comment_minus, body: commnet_body, format: commnet_wordstyle}
 
   # puts @comment_tmp
-  puts "------------------------------------------------------------------------"
+  # puts "------------------------------------------------------------------------"
   puts "@comment_tmp[:name]: #{@comment_tmp[:name]}"
-  puts "@comment_tmp[:date]: #{@comment_tmp[:date]}"
-  puts "@comment_tmp[:plus]: #{@comment_tmp[:plus]}"
-  puts "@comment_tmp[:minus]: #{@comment_tmp[:minus]}"
-  puts "@comment_tmp[:body]: #{@comment_tmp[:body]}"
-  puts "@comment_tmp[:format]: #{@comment_tmp[:format]}"
-  puts "------------------------------------------------------------------------"
+  # puts "@comment_tmp[:date]: #{@comment_tmp[:date]}"
+  # puts "@comment_tmp[:plus]: #{@comment_tmp[:plus]}"
+  # puts "@comment_tmp[:minus]: #{@comment_tmp[:minus]}"
+  # puts "@comment_tmp[:body]: #{@comment_tmp[:body]}"
+  # puts "@comment_tmp[:format]: #{@comment_tmp[:format]}"
+  # puts "------------------------------------------------------------------------"
 end
 
 # GetTopicInfo("1142480") #page: 604, life: end
