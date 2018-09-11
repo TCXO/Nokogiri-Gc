@@ -36,7 +36,7 @@ end
 
 # $docにページ情報を格納する
 def GetTopicPage(topicid:, topic_page:)
-  url = "https://girlschannel.net/topics/#{topicid.to_s}/#{topic_page.to_s}"
+  url = "http://girlschannel.net/topics/#{topicid.to_s}/#{topic_page.to_s}"
   html = open(url) do |f|
       charset = f.charset
       f.read
@@ -67,80 +67,30 @@ def GetComment(comment_id:)
     comment_minus = $doc.xpath(%Q{//*[@id="vbox#{comment_id}"]/div[3]/p}).children[0].to_s.sub("-", "").to_i
     comment_body = $doc.xpath("//*[@id=\"comment#{comment_id}\"]/div[1]").children.to_s.gsub(/\s/, "")
   end
-  # puts "comment_body(original): #{comment_body}"
+  puts "comment_body(original): #{comment_body}"
 
   #コメントにリンクが含まれている場合の処理
   link_count = 0
-  # comment_include_url = Array.new
+  comment_include_url = Array.new
+  while !($doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div/div/div/a[1]})[link_count].nil?)
+    #リンク先タイトル
+    title = $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div/div/div/a[1]})[link_count].children.text
+    # p $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div/div/div/a[1]})[link_count].children.text
+    #リンク先URL
+    url = $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div/div/div/a[2]})[link_count][:href]
+    # p $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div/div/div/a[2]})[link_count][:href]
 
-  #コメントにリンクおよび画像が含まれている場合の処理テスト
-  $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div}).each_with_index do |item, link_count|
-    # puts "item: #{item}"
-    if item.to_s.include?(%Q{<div class="comment-url">})
-      puts "com"
-        #リンク先タイトル
-        title = $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div/div/div/a[1]})[link_count].children.text
-        #リンク先URL
-        url = $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div/div/div/a[2]})[link_count][:href]
-        comment_include_url = "[LINK_TITLE: #{title}, URL: #{url}]\n"
-        comment_body = comment_body.gsub(%r{<divclass="comment-url"><divclass="comment-url-headflc">.*?</p></div></div></div><br>}, comment_include_url)
-    elsif item.to_s.include?(%Q{<div class="comment-img">})
-      puts "img"
-      #イメージタイトル
-      if link_count == 0
-        puts "img_title: "
-        # p $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div/img})[4].inspect
-        $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div/img}).each_with_index do |item, idx|
-          #up.gc-img.netの直リンURL
-          data_src = item[:"data-src"]
-          # puts "idx: #{idx}, item: #{item[:"data-src"]}"
-          #画像のAlt情報
-          alt = item[:alt]
-          # puts "idx: #{idx}, item: #{item[:alt]}"
+    comment_include_url << "[LINK_TITLE: #{title}, URL: #{url}]"
 
-          #外部画像リンク直接貼り付けの場合、出典元URLが含まれる
-          href = $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div/a[1]})[0][:href] if $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div/a[1]})[0]
-          # puts "item: #{$doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div/a[1]})[0][:href]}" if $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div/a[1]})[0]
-          comment_include_img = "[IMG: #{alt}, URL: #{data_src}, SOURCE: #{href}]\n"
-          # comment_body = comment_body.gsub(%r{<divclass="comment-img">.*?</div><br>}, comment_include_url)
-          puts "comment_include_img: #{comment_include_img}"
-        end
-      else
-        puts "img_title: " + $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div[#{link_count + 1}]/img}).inspect
-      end
-      #イメージURL
-    else
-      puts "uhh."
-    end
-
+    link_count += 1
   end
+  comment_body = comment_body.gsub("<br>", "\n")
+  comment_body = comment_body.gsub(%r{<divclass="comment-url"><divclass="comment-url-headflc">.*?</p></div></div></div><br>}, "URL")
 
-  # while !($doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div/div/div/a[1]})[link_count].nil?)
-  #   #リンク先タイトル
-  #   title = $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div/div/div/a[1]})[link_count].children.text
-  #   # p $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div/div/div/a[1]})[link_count].children.text
-  #   #リンク先URL
-  #   url = $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div/div/div/a[2]})[link_count][:href]
-  #   # p $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div/div/div/a[2]})[link_count][:href]
-  #
-  #   comment_include_url << "[LINK_TITLE: #{title}, URL: #{url}]\n"
-  #
-  #   link_count += 1
-  # end
-  # puts "link_count: #{link_count}"
 
-  #リンクソースをリンク情報に置換
   link_count.times do |i|
     comment_body = comment_body.gsub(%r{<divclass="comment-url"><divclass="comment-url-headflc">.*?</p></div></div></div><br>}, comment_include_url[i])
   end
-
-  #コメントに画像が含まれている場合の処理
-  p $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div}).size
-
-
-
-  #HTMLの改行コードを文字列の改行コードに変換
-  comment_body = comment_body.gsub("<br>", "\n")
   puts "comment_body(edited): #{comment_body}"
 
   # puts $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div/div/div/a[1]})[1].nil?
