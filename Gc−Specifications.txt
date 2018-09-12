@@ -17,3 +17,19 @@ topicidは1を起点として昇順になっているが、欠番が存在する
 ■実行速度
 topicid: 1395348の全情報取得に要した時間は2m50s
 →1207コメント数
+
+■?
+ブラウザ上では半角空白文字に見えるが、HTML上では半角+全角空白文字列になっている
+→1694702#1にて発生
+
+#以下の183, 397は2リンク+1画像を保有
+#http://girlschannel.net/topics/1680466/
+
+# 183: //*[@id="comment183"]/div[1]/div[3]/img
+# 185: //*[@id="comment185"]/div[1]/div/img
+
+# id=1にリンクと画像1ヶあり
+# https://girlschannel.net/topics/1694702/
+
+#1694702 -> Real: 5m40s
+# $page_info: {:topicid=>\"1694702\", :total_comments=>1394, :total_pages=>3}"

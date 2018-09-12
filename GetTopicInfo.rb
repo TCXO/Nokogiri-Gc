@@ -1,10 +1,11 @@
 require 'nokogiri'
 require 'open-uri'
+require 'time'
 
 # トピック情報の取得
 def GetTopicInfo(topicid: )
   #トピック情報を取得
-  url = 'http://girlschannel.net/topics/' + topicid.to_s
+  url = 'https://girlschannel.net/topics/' + topicid.to_s
   charset = nil
   html = open(url) do |f|
       charset = f.charset
@@ -14,18 +15,10 @@ def GetTopicInfo(topicid: )
   #トピック情報格納
   $doc = Nokogiri::HTML.parse(html, nil, charset)
 
-
+  #トピックの全コメント数取得
+  @total_comments = 3
+  # @total_comments = $doc.xpath("/html/body/div[1]/div[1]/div/div[1]/p/span[2]").children.to_s.match(/\d*/).to_s.to_i
   #トピックのページ数取得
-  # if $doc.xpath("/html/body/div[1]/div[1]/div/div[4]/ul/li")[0][:class].to_s.include?("first")
-  #   @max_pages = $doc.xpath("/html/body/div[1]/div[1]/div/div[4]/ul/li").size - 4
-  #   @max_pages = $doc.xpath("/html/body/div[1]/div[1]/div/div[2]/ul/li[9]/a").children if  @max_pages == 8
-  # else
-  #   @max_pages = 1
-  # end
-  #
-  # puts "@max_pages: #{@max_pages}"
-
-  @total_comments = $doc.xpath("/html/body/div[1]/div[1]/div/div[1]/p/span[2]").children.to_s.match(/\d*/).to_s.to_i
   @total_pages = (@total_comments/500.to_f).ceil
 
   $page_info = {topicid: topicid, total_comments: @total_comments, total_pages: @total_pages}
@@ -54,55 +47,102 @@ def GetComment(comment_id:)
     return
   end
 
+  #コメント情報格納, 投稿日時はTimeで扱う
   comment_name = $doc.xpath("//*[@id=\"comment#{comment_id}\"]").css("p").children[0].to_s.gsub!(/[[:space:]]$/, "").gsub!(/^.*[[:space:]]/, "")
-  comment_date = $doc.xpath("//*[@id=\"comment#{comment_id}\"]").css("p").children[1].children.to_s
+  comment_date = Time.parse($doc.xpath("//*[@id=\"comment#{comment_id}\"]").css("p").children[1].children.to_s.delete("^0-9"))
   comment_plus = $doc.xpath(%Q{//*[@id="vbox#{comment_id}"]/div[1]/p}).children[0].to_s.sub("+", "").to_i
   comment_minus = $doc.xpath(%Q{//*[@id="vbox#{comment_id}"]/div[3]/p}).children[0].to_s.sub("-", "").to_i
-  comment_html = $doc.xpath("//*[@id=\"comment#{comment_id}\"]/div[1]").to_html
+  comment_html_source = $doc.xpath("//*[@id=\"comment#{comment_id}\"]/div[1]").to_html
 
-  #トピ主コメントにのみHTMLコメント有り
+  #トピ主コメントのみHTMLコメント有り
   if comment_id == 1
     comment_body = $doc.xpath("//*[@id=\"comment#{comment_id}\"]/div[1]").children.to_s.sub(/[\s\S]*<!-- logly_body_begin -->/, "").gsub(/<!-- logly_body_end -->[\s\S]*/, "")
-  else
-    comment_body = $doc.xpath("//*[@id=\"comment#{comment_id}\"]/div[1]").children.to_s.gsub(/\s/, "")
-  end
 
-
-  #コメントにリンクおよび画像が含まれている場合の置換処理
-  $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div}).each_with_index do |item, link_count|
-    #リンク
-    if item.to_s.include?(%Q{<div class="comment-url">})
-      #リンク先タイトル
-      title =  $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div[#{link_count+1}]/div/div/a[1]}).children.text
-      #リンク先URL
-      url = $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div[#{link_count+1}]/div/div/a[1]})[0][:href]
-
-      #コメント内のHTMLと置換
-      comment_include_url = "[LINK_TITLE: #{title}, URL: #{url}]\n"
-      comment_body = comment_body.sub(%r{<divclass="comment-url"><divclass="comment-url-headflc">.*?</p></div></div></div>}, comment_include_url)
-    #画像
-    elsif item.to_s.include?(%Q{<div class="comment-img">})
-      $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div[#{link_count+1}]/img}).each_with_index do |item, idx|
-        #up.gc-img.netの直リンURL
-        data_src = item[:"data-src"]
-        #画像のAlt情報
-        alt = item[:alt]
-        #外部画像リンク直接貼り付けの場合、出典元URLが含まれるため追加処理
-        href = $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div/a[1]})[0][:href] if $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div/a[1]})[0]
+    #コメントにリンクおよび画像が含まれている場合の置換処理
+    $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div}).each_with_index do |item, link_count|
+      #リンク
+      if item.to_s.include?(%Q{<div class="comment-url">})
+        #リンク先タイトル
+        title =  $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div[#{link_count+1}]/div/div/a[1]}).children.text
+        #リンク先URL
+        url = $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div[#{link_count+1}]/div/div/a[1]})[0][:href]
 
         #コメント内のHTMLと置換
-        comment_include_img = "[IMG: #{alt}, URL: #{data_src}, SOURCE: #{href}]\n"
-        comment_body = comment_body.sub(%r{<divclass="comment-img">.*?</div>}, comment_include_img)
+        comment_include_url = "[LINK_TITLE: #{title}, URL: #{url}]\n"
+        link_html_source = $doc.xpath(%Q{//*[@id="comment1"]/div[1]/div[#{link_count+1}]}).to_html
+        comment_body = comment_body.sub(link_html_source.to_s, comment_include_url)
 
-        #文字列の後尾に未改行で画像がついた場合の改行処理
-        comment_body.lines do |line|
-          comment_body.sub!(comment_include_img, "\n"+comment_include_img)　if line.match(%r{.+\[IMG:})
+        #空白文字列が入ったときの処理, 1694702#1にて発生
+        comment_body.gsub!("	", "")
+
+      #画像
+      elsif item.to_s.include?(%Q{<div class="comment-img">})
+        $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div[#{link_count+1}]/img}).each_with_index do |item, idx|
+          #up.gc-img.netの直リンURL
+          data_src = item[:"data-src"]
+          #画像のAlt情報
+          alt = item[:alt]
+          #外部画像リンク直接貼り付けの場合、出典元URLが含まれるため追加処理
+          href = $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div/a[1]})[0][:href] if $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div/a[1]})[0]
+
+          #コメント内のHTMLと置換
+          comment_include_img = "[IMG: #{alt}, URL: #{data_src}, SOURCE: #{href}]\n"
+          img_html_source = $doc.xpath(%Q{//*[@id="comment1"]/div[1]/div[#{link_count+1}]}).to_html
+          puts "comment_include_img: #{comment_include_img}"
+          comment_body = comment_body.sub(img_html_source, comment_include_img)
+
+          #文字列の後尾に未改行で画像がついた場合の改行処理
+          comment_body.lines do |line|
+            comment_body.sub!(comment_include_img, "\n"+comment_include_img) if line.match(%r{.+\[IMG:})
+          end
         end
+      else
+        puts "uhh."
       end
-    else
-      puts "uhh."
+    end
+
+  else
+    comment_body = $doc.xpath("//*[@id=\"comment#{comment_id}\"]/div[1]").children.to_s.gsub(/\s/, "")
+
+    #コメントにリンクおよび画像が含まれている場合の置換処理
+    $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div}).each_with_index do |item, link_count|
+      #リンク
+      if item.to_s.include?(%Q{<div class="comment-url">})
+        #リンク先タイトル
+        title =  $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div[#{link_count+1}]/div/div/a[1]}).children.text
+        #リンク先URL
+        url = $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div[#{link_count+1}]/div/div/a[1]})[0][:href]
+
+        #コメント内のHTMLと置換
+        comment_include_url = "[LINK_TITLE: #{title}, URL: #{url}]\n"
+        comment_body = comment_body.sub(%r{<divclass="comment-url"><divclass="comment-url-headflc">.*?</p></div></div></div>}, comment_include_url)
+      #画像
+      elsif item.to_s.include?(%Q{<div class="comment-img">})
+        $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div[#{link_count+1}]/img}).each_with_index do |item, idx|
+          #up.gc-img.netの直リンURL
+          data_src = item[:"data-src"]
+          #画像のAlt情報
+          alt = item[:alt]
+          #外部画像リンク直接貼り付けの場合、出典元URLが含まれるため追加処理
+          href = $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div/a[1]})[0][:href] if $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div/a[1]})[0]
+
+          #コメント内のHTMLと置換
+          comment_include_img = "[IMG: #{alt}, URL: #{data_src}, SOURCE: #{href}]\n"
+          comment_body = comment_body.sub(%r{<divclass="comment-img">.*?</div>}, comment_include_img)
+
+          #文字列の後尾に未改行で画像がついた場合の改行処理
+          comment_body.lines do |line|
+            comment_body.sub!(comment_include_img, "\n"+comment_include_img) if line.match(%r{.+\[IMG:})
+          end
+        end
+      else
+        puts "uhh."
+      end
     end
   end
+  #HTMLの改行コードを文字列の改行コードに変換
+  comment_body = comment_body.gsub("<br>", "\n")
+
 
   #アンカーの置換処理
   $doc.xpath("//*[@id=\"comment#{comment_id}\"]/div[1]/span").each_with_index do |item, idx|
@@ -116,31 +156,8 @@ def GetComment(comment_id:)
   end
 
 
-  # puts "com_orig: #{com_orig}"
-  # while !($doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div/div/div/a[1]})[link_count].nil?)
-  #   #リンク先タイトル
-  #   title = $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div/div/div/a[1]})[link_count].children.text
-  #   # p $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div/div/div/a[1]})[link_count].children.text
-  #   #リンク先URL
-  #   url = $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div/div/div/a[2]})[link_count][:href]
-  #   # p $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div/div/div/a[2]})[link_count][:href]
-  #
-  #   comment_include_url << "[LINK_TITLE: #{title}, URL: #{url}]\n"
-  #
-  #   link_count += 1
-  # end
-  # puts "link_count: #{link_count}"
 
-  #リンクソースをリンク情報に置換
-  # link_count.times do |i|
-  #   comment_body = comment_body.gsub(%r{<divclass="comment-url"><divclass="comment-url-headflc">.*?</p></div></div></div><br>}, comment_include_url[i])
-  # end
-
-
-
-
-  #HTMLの改行コードを文字列の改行コードに変換
-  comment_body = comment_body.gsub("<br>", "\n")
+  puts "##{comment_id}: comment_name: #{comment_name}, comment_date: #{comment_date}, comment_plus: #{comment_plus}, comment_minus: #{comment_minus}"
   puts "comment_body(edited): \n#{comment_body}"
 
   # puts $doc.xpath(%Q{//*[@id="comment#{comment_id}"]/div[1]/div/div/div/a[1]})[1].nil?
@@ -175,6 +192,21 @@ def GetComment(comment_id:)
   # puts "@comment_tmp[:body]: #{@comment_tmp[:body]}"
   # puts "@comment_tmp[:format]: #{@comment_tmp[:format]}"
   # puts "------------------------------------------------------------------------"
+end
+
+def GetTopicAllData(topicid: )
+  GetTopicInfo(topicid: topicid) #page: 3, life: ok
+  puts "@total_pages: #{@total_pages}"
+  1.upto @total_pages do |i|
+    # puts "i: #{i}"
+    GetTopicPage(topicid: topicid, topic_page: i)
+    1.upto 500 do |j|
+      comment_id = j+((i-1)*500)
+
+      # puts "i-j: #{i}-#{j}, #{j+((i-1)*500)}"
+      GetComment(comment_id: comment_id) if comment_id <= @total_comments
+    end
+  end
 end
 
 # GetTopicInfo("1142480") #page: 604, life: end

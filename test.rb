@@ -11,12 +11,13 @@ $topicdata = Array.new()
 #   GetComment(comment_id: i)
 # end
 
-GetTopicPage(topicid: 1680466, topic_page: 1)
+# GetTopicPage(topicid: 1680466, topic_page: 1)
+#
+# 395.upto(397) do |i|
+#   puts "------------------------- i : #{i} ------------------------- \n"
+#   GetComment(comment_id: i)
+# end
 
-1.upto(100) do |i|
-  puts "------------------------- i : #{i} ------------------------- \n"
-  GetComment(comment_id: i)
-end
 # 1.upto $page_info[:total_pages] do |i|
 #   # puts "i: #{i}"
 #   GetTopicPage(topicid: 1791173, topic_page: i)
@@ -29,10 +30,18 @@ end
 # end
 #
 # p $topicdata
+GetTopicAllData(topicid: "1694702")
 
 
-#以下の183は2リンク+1画像を保有
+
+#以下の183, 397は2リンク+1画像を保有
 #http://girlschannel.net/topics/1680466/
 
 # 183: //*[@id="comment183"]/div[1]/div[3]/img
 # 185: //*[@id="comment185"]/div[1]/div/img
+
+# id=1にリンクと画像1ヶあり
+# https://girlschannel.net/topics/1694702/
+
+#1694702 -> Real: 5m40s
+# $page_info: {:topicid=>\"1694702\", :total_comments=>1394, :total_pages=>3}"
