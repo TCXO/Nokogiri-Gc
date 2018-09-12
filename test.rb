@@ -13,8 +13,8 @@ $topicdata = Array.new()
 
 GetTopicPage(topicid: 1680466, topic_page: 1)
 
-180.upto(183) do |i|
-  puts "i : #{i}"
+395.upto(397) do |i|
+  puts "------------------------- i : #{i} ------------------------- \n"
   GetComment(comment_id: i)
 end
 # 1.upto $page_info[:total_pages] do |i|
