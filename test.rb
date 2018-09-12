@@ -13,7 +13,7 @@ $topicdata = Array.new()
 
 GetTopicPage(topicid: 1680466, topic_page: 1)
 
-395.upto(397) do |i|
+1.upto(100) do |i|
   puts "------------------------- i : #{i} ------------------------- \n"
   GetComment(comment_id: i)
 end
