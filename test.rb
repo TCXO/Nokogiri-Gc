@@ -2,7 +2,8 @@ require './GetTopicInfo.rb'
 
 $topicdata = Array.new()
 
-
+GetTopicInfo(topicid: 1947364)
+# GetTopicInfo(topicid: 1947117)
 # GetTopicInfo(topicid: 17) #page: 3, life: ok
 # GetTopicPage(topicid: 17, topic_page: 1)
 #
@@ -30,7 +31,7 @@ $topicdata = Array.new()
 # end
 #
 # p $topicdata
-GetTopicAllData(topicid: "1694702")
+# GetTopicAllData(topicid: "1694702")
 
 
 

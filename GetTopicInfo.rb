@@ -16,12 +16,33 @@ def GetTopicInfo(topicid: )
   $doc = Nokogiri::HTML.parse(html, nil, charset)
 
   #トピックの全コメント数取得
-  @total_comments = 3
-  # @total_comments = $doc.xpath("/html/body/div[1]/div[1]/div/div[1]/p/span[2]").children.to_s.match(/\d*/).to_s.to_i
+  # @total_comments = 3
+  @total_comments = $doc.xpath("/html/body/div[1]/div[1]/div/div[1]/p/span[2]").children.to_s.match(/\d*/).to_s.to_i
   #トピックのページ数取得
   @total_pages = (@total_comments/500.to_f).ceil
+  #トピック名
+  # @topic_name = $doc.xpath("/html/body/div[1]/div[1]/div/div[1]/h1").children.to_s.sub(/[\s\S]*<!-- logly_title_begin -->*[\s\S]/, "").sub(/[\s\S]<!-- logly_title_end -->/, "")
+  @topic_name = $doc.title.gsub(" | ガールズちゃんねる - Girls Channel -", "")
+  #トピック作成日時
+  @topic_create = Time.parse($doc.xpath("/html/body/div[1]/div[1]/div/div[1]/p/span[3]").to_s.delete("^0-9"))
+  # $doc.xpath("/html/body/div[1]/div[1]/div/div[1]/p/span[3]").children.to_s
+  #トピック関連キーワード
+  @topic_keywords = Array.new()
+  $doc.xpath("/html/body/div[1]/div[1]/div/div[6]/div/ul").children.size.times do |i|
+    @topic_keywords << $doc.xpath("/html/body/div[1]/div[1]/div/div[6]/div/ul/a[#{i+1}]/li/text()").to_s
+    break if i == ($doc.xpath("/html/body/div[1]/div[1]/div/div[6]/div/ul").children.size / 2) - 1
+  end
 
-  $page_info = {topicid: topicid, total_comments: @total_comments, total_pages: @total_pages}
+  @topic_img_url = $doc.xpath("/html/body/div[1]/div[1]/div/div[1]/img").attribute('src').value
+  $page_info = {
+    topicid: topicid,
+    total_comments: @total_comments,
+    total_pages: @total_pages,
+    topic_name: @topic_name,
+    topic_create: @topic_create,
+    topic_keywords: @topic_keywords,
+    topic_img_url: @topic_img_url
+  }
 
   p "$page_info: #{$page_info}"
 
@@ -72,8 +93,8 @@ def GetComment(comment_id:)
         link_html_source = $doc.xpath(%Q{//*[@id="comment1"]/div[1]/div[#{link_count+1}]}).to_html
         comment_body = comment_body.sub(link_html_source.to_s, comment_include_url)
 
-        #空白文字列が入ったときの処理, 1694702#1にて発生
-        comment_body.gsub!("	", "")
+        #空白文字列が入ったときの処理
+        comment_body.gsub!("			", "")
 
       #画像
       elsif item.to_s.include?(%Q{<div class="comment-img">})
