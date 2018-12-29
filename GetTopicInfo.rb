@@ -1,50 +1,70 @@
 require 'nokogiri'
 require 'open-uri'
 require 'time'
+require 'rubygems'
+require 'active_support/all'
+require 'json'
+
 
 # トピック情報の取得
 def GetTopicInfo(topicid: )
   #トピック情報を取得
   url = 'https://girlschannel.net/topics/' + topicid.to_s
   charset = nil
-  html = open(url) do |f|
-      charset = f.charset
-      f.read
+
+  #404処理
+  begin
+    html = open(url) do |f|
+        charset = f.charset
+        f.read
+    end
+  rescue => e
+    puts "e: #{e}"
+    $topicinfo = {topicinfo_getdate: Time.now}
+
+    puts "$topicinfo: "
+    $topicinfo.each {|item| puts " #{item}"}
+    return
   end
 
-  #トピック情報格納
   $doc = Nokogiri::HTML.parse(html, nil, charset)
 
-  #トピックの全コメント数取得
-  # @total_comments = 3
-  @total_comments = $doc.xpath("/html/body/div[1]/div[1]/div/div[1]/p/span[2]").children.to_s.match(/\d*/).to_s.to_i
-  #トピックのページ数取得
-  @total_pages = (@total_comments/500.to_f).ceil
-  #トピック名
-  # @topic_name = $doc.xpath("/html/body/div[1]/div[1]/div/div[1]/h1").children.to_s.sub(/[\s\S]*<!-- logly_title_begin -->*[\s\S]/, "").sub(/[\s\S]<!-- logly_title_end -->/, "")
-  @topic_name = $doc.title.gsub(" | ガールズちゃんねる - Girls Channel -", "")
-  #トピック作成日時
-  @topic_create = Time.parse($doc.xpath("/html/body/div[1]/div[1]/div/div[1]/p/span[3]").to_s.delete("^0-9"))
-  # $doc.xpath("/html/body/div[1]/div[1]/div/div[1]/p/span[3]").children.to_s
-  #トピック関連キーワード
+  #トピック書き込み可否判定
+  current_date = Time.now
+  topic_create = Time.parse($doc.xpath("//*[@id=\"comment1\"]").css("p").children[1].children.to_s.delete("^0-9"))
+  current_date < topic_create + 1.month ? topic_writable = true : topic_writable = false
+
+
+
+
+  #トピック関連キーワードArray格納, トピック状態によりXpath変化あり
   @topic_keywords = Array.new()
-  $doc.xpath("/html/body/div[1]/div[1]/div/div[6]/div/ul").children.size.times do |i|
-    @topic_keywords << $doc.xpath("/html/body/div[1]/div[1]/div/div[6]/div/ul/a[#{i+1}]/li/text()").to_s
-    break if i == ($doc.xpath("/html/body/div[1]/div[1]/div/div[6]/div/ul").children.size / 2) - 1
+  topic_writable ? div_id = 6 : div_id = 4
+  $doc.xpath("/html/body/div[1]/div[1]/div/div[#{div_id}]/div/ul").children.size.times do |i|
+    @topic_keywords << $doc.xpath("/html/body/div[1]/div[1]/div/div[#{div_id}]/div/ul/a[#{i+1}]/li/text()").to_s
+    break if i == ($doc.xpath("/html/body/div[1]/div[1]/div/div[#{div_id}]/div/ul").children.size / 2) - 1
   end
 
-  @topic_img_url = $doc.xpath("/html/body/div[1]/div[1]/div/div[1]/img").attribute('src').value
-  $page_info = {
+
+  $topicinfo = {
     topicid: topicid,
-    total_comments: @total_comments,
-    total_pages: @total_pages,
-    topic_name: @topic_name,
-    topic_create: @topic_create,
-    topic_keywords: @topic_keywords,
-    topic_img_url: @topic_img_url
+    #Json取得日時, 既存トピック削除時間推測などに使用
+    topicinfo_getdate: current_date,
+    #トピックの全コメント数取得
+    total_comments: $doc.xpath("/html/body/div[1]/div[1]/div/div[1]/p/span[2]").children.to_s.match(/\d*/).to_s.to_i,
+    #トピックのページ数取得
+    total_pages: ($doc.xpath("/html/body/div[1]/div[1]/div/div[1]/p/span[2]").children.to_s.match(/\d*/).to_s.to_i/500.to_f).ceil,
+    #トピック名
+    name: $doc.title.gsub(" | ガールズちゃんねる - Girls Channel -", ""),
+    #トピック作成日時
+    create: topic_create,
+    keywords: @topic_keywords,
+    topic_img_url: $doc.xpath("/html/body/div[1]/div[1]/div/div[1]/img").attribute('src').value
   }
 
-  p "$page_info: #{$page_info}"
+  puts "$topicinfo: "
+  $topicinfo.each {|item| puts " #{item}"}
+
 
 end
 
