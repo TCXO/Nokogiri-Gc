@@ -1,14 +1,15 @@
 require './GetTopicInfo.rb'
 
 $topicdata = Array.new()
-$alldata_json = {topic_info: Array.new}
+$alldata_json = {topic_info: Hash.new()}
 
 # [1, 38, 39, 1947117].each do |item|
 [1, 2].each do |item|
   puts "item:  #{item}"
   GetTopicInfo(topicid: item)
   # puts "$page_info.to_json: #{$page_info.to_json}"
-  $alldata_json[:topic_info] << JSON.pretty_generate($topicinfo)
+  # $alldata_json[:topic_info][item.to_s.to_sym] = JSON.pretty_generate($topicinfo)
+  $alldata_json[:topic_info][item.to_s.to_sym] = $topicinfo.to_json
 end
 
 

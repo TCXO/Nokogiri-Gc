@@ -1,15 +1,10 @@
 require './GetTopicInfo.rb'
 
+hash_test = {"key": {"key2": "value2"}}.to_s
+
+# puts hash_test
+# puts JSON.parse(hash_test, symbolize_names: true)
 puts JSON.parse('{"key": {"key2": "value2"}}', symbolize_names: true)
-
-File.open('/Users/mbp13/Documents/github/Nokogiri-Gc/alldata_json.json') do |file|
-  @hash = JSON.load(file)
-  # @json = @hash.to_json
-  @json = JSON.parse(@hash["topic_info"], {:symbolize_names => true})
-end
-
-puts "hash: #{@hash["topic_info"][1]}"
-puts "json: #{@json}"
 
 # GetTopicInfo(topicid: 17) #page: 3, life: ok
 # GetTopicPage(topicid: 17, topic_page: 1)
